@@ -6,7 +6,137 @@ import { AppError } from '../middleware/errorHandler';
 
 const router = express.Router();
 
-// Get analytics for a specific link
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ClickEvent:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The click event's ID
+ *         linkId:
+ *           type: string
+ *           description: The ID of the clicked link
+ *         ip:
+ *           type: string
+ *           description: The IP address of the clicker
+ *         country:
+ *           type: string
+ *           description: The country of the clicker
+ *         city:
+ *           type: string
+ *           description: The city of the clicker
+ *         device:
+ *           type: string
+ *           description: The device type used
+ *         browser:
+ *           type: string
+ *           description: The browser used
+ *         os:
+ *           type: string
+ *           description: The operating system used
+ *         referrer:
+ *           type: string
+ *           description: The referrer URL
+ *         utmSource:
+ *           type: string
+ *           description: UTM source parameter
+ *         utmMedium:
+ *           type: string
+ *           description: UTM medium parameter
+ *         utmCampaign:
+ *           type: string
+ *           description: UTM campaign parameter
+ *         timestamp:
+ *           type: string
+ *           format: date-time
+ *           description: When the click occurred
+ *     AnalyticsResponse:
+ *       type: object
+ *       properties:
+ *         totalClicks:
+ *           type: number
+ *           description: Total number of clicks
+ *         uniqueCountries:
+ *           type: number
+ *           description: Number of unique countries
+ *         uniqueDevices:
+ *           type: number
+ *           description: Number of unique devices
+ *         uniqueBrowsers:
+ *           type: number
+ *           description: Number of unique browsers
+ *         referrerBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic sources
+ *         countryBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic by country
+ *         deviceBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic by device
+ *         browserBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic by browser
+ *         utmBreakdown:
+ *           type: object
+ *           properties:
+ *             source:
+ *               type: object
+ *             medium:
+ *               type: object
+ *             campaign:
+ *               type: object
+ *         clicks:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ClickEvent'
+ */
+
+/**
+ * @swagger
+ * /api/analytics/links/{linkId}:
+ *   get:
+ *     summary: Get analytics for a specific link
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: linkId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Link ID
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Start date for analytics (optional)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: End date for analytics (optional)
+ *     responses:
+ *       200:
+ *         description: Analytics data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/AnalyticsResponse'
+ *       404:
+ *         description: Link not found
+ */
 router.get('/links/:linkId', protect, async (req: Request, res: Response, next:NextFunction) => {
   try {
     // Verify link ownership
@@ -105,7 +235,61 @@ router.get('/links/:linkId', protect, async (req: Request, res: Response, next:N
   }
 });
 
-// Record click event
+/**
+ * @swagger
+ * /api/analytics/clicks:
+ *   post:
+ *     summary: Record a click event
+ *     tags: [Analytics]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - linkId
+ *             properties:
+ *               linkId:
+ *                 type: string
+ *               ip:
+ *                 type: string
+ *               country:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               device:
+ *                 type: string
+ *               browser:
+ *                 type: string
+ *               os:
+ *                 type: string
+ *               referrer:
+ *                 type: string
+ *               utmSource:
+ *                 type: string
+ *               utmMedium:
+ *                 type: string
+ *               utmCampaign:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Click event recorded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     clickEvent:
+ *                       $ref: '#/components/schemas/ClickEvent'
+ *       404:
+ *         description: Link not found
+ */
 router.post('/clicks', async (req: Request, res: Response, next:NextFunction) => {
   try {
     const {

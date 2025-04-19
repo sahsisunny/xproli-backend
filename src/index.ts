@@ -4,6 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import { errorHandler } from "./middleware/errorHandler";
 import { authRoutes } from "./routes/auth";
 import { linkRoutes } from "./routes/links";
@@ -24,7 +26,6 @@ app.use(cors({
   credentials: true,
 }));
 
-
 // Middleware
 app.use(express.json());
 app.use(helmet());
@@ -35,6 +36,9 @@ const limiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -52,6 +56,7 @@ mongoose
     console.log("Connected to MongoDB");
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
+      console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
     });
   })
   .catch((error) => {

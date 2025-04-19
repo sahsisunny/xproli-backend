@@ -6,8 +6,96 @@ import { AppError } from '../middleware/errorHandler';
 import { protect } from '../middleware/auth';
 import { ClickEvent } from '../models/ClickEvent';
 
-
 const router = express.Router();
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Link:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The link's ID
+ *         ownerId:
+ *           type: string
+ *           description: The ID of the user who owns the link
+ *         domain:
+ *           type: string
+ *           description: The domain for the short URL
+ *         slug:
+ *           type: string
+ *           description: The unique identifier for the short URL
+ *         destinationUrl:
+ *           type: string
+ *           description: The original URL that will be redirected to
+ *         title:
+ *           type: string
+ *           description: Optional title for the link
+ *         description:
+ *           type: string
+ *           description: Optional description for the link
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Optional tags for categorizing the link
+ *         expiresAt:
+ *           type: string
+ *           format: date-time
+ *           description: Optional expiration date for the link
+ *         passwordProtected:
+ *           type: boolean
+ *           description: Whether the link is password protected
+ *         password:
+ *           type: string
+ *           description: Optional password for the link
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: When the link was created
+ *     LinkStats:
+ *       type: object
+ *       properties:
+ *         totalClicks:
+ *           type: number
+ *           description: Total number of clicks
+ *         uniqueCountries:
+ *           type: number
+ *           description: Number of unique countries
+ *         uniqueDevices:
+ *           type: number
+ *           description: Number of unique devices
+ *         uniqueBrowsers:
+ *           type: number
+ *           description: Number of unique browsers
+ *         referrerBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic sources
+ *         countryBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic by country
+ *         deviceBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic by device
+ *         browserBreakdown:
+ *           type: object
+ *           description: Breakdown of traffic by browser
+ *         utmBreakdown:
+ *           type: object
+ *           properties:
+ *             source:
+ *               type: object
+ *             medium:
+ *               type: object
+ *             campaign:
+ *               type: object
+ *         recentClicks:
+ *           type: array
+ *           items:
+ *             type: object
+ */
 
 // Link validation
 const linkValidation = [
@@ -49,7 +137,63 @@ const linkValidation = [
     .withMessage('Password must be a string')
 ];
 
-// Create link
+/**
+ * @swagger
+ * /api/links:
+ *   post:
+ *     summary: Create a new short link
+ *     tags: [Links]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - destinationUrl
+ *             properties:
+ *               destinationUrl:
+ *                 type: string
+ *                 format: uri
+ *               domain:
+ *                 type: string
+ *               slug:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               expiresAt:
+ *                 type: string
+ *                 format: date-time
+ *               passwordProtected:
+ *                 type: boolean
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Link created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     link:
+ *                       $ref: '#/components/schemas/Link'
+ *       400:
+ *         description: Invalid input or slug already in use
+ */
 router.post('/', protect, linkValidation, async (req: Request, res: Response, next:NextFunction) => {
   try {
     const errors = validationResult(req);
@@ -98,7 +242,42 @@ router.post('/', protect, linkValidation, async (req: Request, res: Response, ne
   }
 });
 
-// Get all links for user
+/**
+ * @swagger
+ * /api/links:
+ *   get:
+ *     summary: Get all links for the authenticated user
+ *     tags: [Links]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of links with statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 results:
+ *                   type: number
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       slug:
+ *                         type: string
+ *                       destinationUrl:
+ *                         type: string
+ *                       shortUrl:
+ *                         type: string
+ *                       stats:
+ *                         $ref: '#/components/schemas/LinkStats'
+ */
 router.get('/', protect, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const links = await Link.find({ ownerId: req.user._id })
@@ -205,7 +384,40 @@ router.get('/', protect, async (req: Request, res: Response, next: NextFunction)
     next(error);
   }
 });
-// Get single link
+
+/**
+ * @swagger
+ * /api/links/{id}:
+ *   get:
+ *     summary: Get a single link by ID
+ *     tags: [Links]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Link ID
+ *     responses:
+ *       200:
+ *         description: Link details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     link:
+ *                       $ref: '#/components/schemas/Link'
+ *       404:
+ *         description: Link not found
+ */
 router.get('/:id', protect, async (req: Request, res: Response, next:NextFunction) => {
   try {
     const link = await Link.findOne({
@@ -226,7 +438,45 @@ router.get('/:id', protect, async (req: Request, res: Response, next:NextFunctio
   }
 });
 
-// Update link
+/**
+ * @swagger
+ * /api/links/{id}:
+ *   patch:
+ *     summary: Update a link
+ *     tags: [Links]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Link ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Link'
+ *     responses:
+ *       200:
+ *         description: Link updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     link:
+ *                       $ref: '#/components/schemas/Link'
+ *       404:
+ *         description: Link not found
+ */
 router.patch('/:id', protect, linkValidation, async (req: Request, res: Response, next:NextFunction) => {
   try {
     const errors = validationResult(req);
